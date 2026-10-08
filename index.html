@@ -3,37 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cell: Multiverse Absorption AAA</title>
+    <title>Cell: Multiverse Absorption - Anime Epic</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="game-wrap">
       <aside class="panel left">
         <div class="title">CELL</div>
-        <div class="stat-row">
-          <span>Forma</span>
-          <strong id="cellForm">Spore</strong>
-        </div>
-        <div class="stat-row">
-          <span>Punteggio</span>
-          <strong id="score">0</strong>
-        </div>
-        <div class="stat-row">
-          <span>Dimensione</span>
-          <strong id="size">1.0x</strong>
-        </div>
-        <div class="stat-row">
-          <span>Vita</span>
-          <strong id="hp">100</strong>
-        </div>
-        <div class="stat-row">
-          <span>Stadio</span>
-          <strong id="stage">1</strong>
-        </div>
+        <div class="stat-row"><span>Forma</span><strong id="cellForm">Spore</strong></div>
+        <div class="stat-row"><span>Punteggio</span><strong id="score">0</strong></div>
+        <div class="stat-row"><span>Dimensione</span><strong id="size">1.0x</strong></div>
+        <div class="stat-row"><span>Vita</span><strong id="hp">100</strong></div>
+        <div class="stat-row"><span>Stadio</span><strong id="stage">1</strong></div>
       </aside>
 
       <main class="arena-box">
         <canvas id="gameCanvas" width="960" height="600"></canvas>
+        <div class="boss-bar hidden" id="bossBar">
+          <div class="boss-label">UNIVERSO NOMADE</div>
+          <div class="boss-meter">
+            <div id="bossHealth" class="boss-health"></div>
+          </div>
+        </div>
         <div id="hudMessage" class="hud-message">Missione in attesa</div>
       </main>
 
@@ -58,11 +49,11 @@
     </div>
 
     <div id="startOverlay" class="overlay visible">
-      <div class="overlay-card">
-        <p class="tag">MULTIVERSO IMPERIALE</p>
-        <h1>Cell: Absorption AAA</h1>
-        <p>
-          Il tuo scopo è conquistare i mondi del multiverso, assorbire le protagoniste rivali e trasformare Cell in una forma assoluta.
+      <div class="overlay-card intro-card">
+        <p class="tag">MULTIVERSO EPICO</p>
+        <h1>Cell: Absorption</h1>
+        <p class="storyline">
+          Dai mondi di rottura e luce si leva una forza oscura: le protagoniste del multiverso cercano di fermare Cell. Ora il tuo essere si prepara a inghiottire anime, universi e destino.
         </p>
         <button id="startBtn">Avvia missione</button>
       </div>
