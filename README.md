@@ -6,26 +6,35 @@ const hpEl = document.getElementById('hp');
 const stageEl = document.getElementById('stage');
 const sizeEl = document.getElementById('size');
 const formEl = document.getElementById('cellForm');
+const powerStatEl = document.getElementById('powerStat');
+const speedStatEl = document.getElementById('speedStat');
+const bestStatEl = document.getElementById('bestStat');
 const hudMessageEl = document.getElementById('hudMessage');
-const startOverlayEl = document.getElementById('startOverlay');
-const gameOverOverlayEl = document.getElementById('gameOverOverlay');
 const finalScoreEl = document.getElementById('finalScore');
+const startOverlayEl = document.getElementById('startOverlay');
+const mutationOverlayEl = document.getElementById('mutationOverlay');
+const gameOverOverlayEl = document.getElementById('gameOverOverlay');
+const mutationChoicesEl = document.getElementById('mutationChoices');
 
 const world = { width: canvas.width, height: canvas.height };
 const keys = {};
-const palette = ['#72f7ba', '#7fe8ff', '#ff86d8', '#8d7dff', '#ffd76a', '#ff5f7b'];
+const palette = ['#72f7ba', '#7fe8ff', '#ff86d8', '#9f7dff', '#ffd76a', '#ff5f7b'];
 
-const player = {
+const playerDefaults = {
   x: world.width / 2,
   y: world.height / 2,
   radius: 24,
   speed: 4.8,
   hp: 100,
   maxHp: 100,
+  attackPower: 1,
+  regen: 0.12,
+  form: 'Spore',
   invuln: 0,
   growth: 1,
-  form: 'Spore',
 };
+
+const player = { ...playerDefaults };
 
 const state = {
   started: false,
@@ -34,26 +43,50 @@ const state = {
   stage: 1,
   lastTime: 0,
   spawnTimer: 0,
-  bossTimer: 0,
-  shootCooldown: 0,
+  shotCooldown: 0,
   bossActive: false,
   best: Number(localStorage.getItem('cell-best') || 0),
+  mutationReady: false,
 };
 
 const enemies = [];
 const projectiles = [];
 const particles = [];
 
+const mutationOptions = [
+  {
+    id: 'speed',
+    title: 'Velocità Kappa',
+    text: '+25% velocità e movimento più reattivo.',
+    apply: () => {
+      player.speed *= 1.25;
+      hudMessageEl.textContent = 'Mutazione: Velocità Kappa attivata';
+    },
+  },
+  {
+    id: 'power',
+    title: 'Nucleo di Luce',
+    text: '+40% potenza del proiettile e attacchi più forti.',
+    apply: () => {
+      player.attackPower *= 1.4;
+      hudMessageEl.textContent = 'Mutazione: Nucleo di Luce attivata';
+    },
+  },
+  {
+    id: 'shield',
+    title: 'Scudo Biomorfico',
+    text: '+20 HP massimi e rigenerazione aumentata.',
+    apply: () => {
+      player.maxHp += 20;
+      player.hp = player.maxHp;
+      player.regen += 0.08;
+      hudMessageEl.textContent = 'Mutazione: Scudo Biomorfico attivato';
+    },
+  },
+];
+
 function resetGame() {
-  player.x = world.width / 2;
-  player.y = world.height / 2;
-  player.radius = 24;
-  player.speed = 4.8;
-  player.hp = 100;
-  player.maxHp = 100;
-  player.invuln = 0;
-  player.growth = 1;
-  player.form = 'Spore';
+  Object.assign(player, playerDefaults);
 
   state.started = true;
   state.running = true;
@@ -61,69 +94,57 @@ function resetGame() {
   state.stage = 1;
   state.lastTime = 0;
   state.spawnTimer = 0;
-  state.bossTimer = 0;
-  state.shootCooldown = 0;
+  state.shotCooldown = 0;
   state.bossActive = false;
+  state.mutationReady = false;
 
   enemies.length = 0;
   projectiles.length = 0;
   particles.length = 0;
 
-  for (let i = 0; i < 8; i++) {
-    spawnEnemy();
+  for (let i = 0; i < 9; i++) {
+    spawnEnemy('drone');
   }
 
-  updateHud();
-  hudMessageEl.textContent = 'Missione iniziata: domina i mondi';
-  gameOverOverlayEl.classList.add('hidden');
   startOverlayEl.classList.add('hidden');
+  gameOverOverlayEl.classList.add('hidden');
+  mutationOverlayEl.classList.add('hidden');
+  hudMessageEl.textContent = 'Missione iniziata: domina i mondi';
+  updateHud();
 }
 
 function spawnEnemy(type = 'drone') {
-  let radius = 16;
-  let speed = 1.2;
+  const stageBoost = state.stage * 0.08;
+  let radius = 14;
+  let speed = 1.2 + stageBoost;
   let color = palette[Math.floor(Math.random() * palette.length)];
-  let name = 'Astra';
+  let name = randomName();
 
   if (type === 'hunter') {
-    radius = 20 + Math.random() * 8;
-    speed = 1.7 + state.stage * 0.06;
+    radius = 18 + Math.random() * 9;
+    speed = 1.8 + stageBoost;
     color = '#ff7ace';
-    name = randomName();
+    name = 'Hunter ' + randomName();
   } else if (type === 'elite') {
-    radius = 25 + Math.random() * 10;
-    speed = 1.5 + state.stage * 0.08;
+    radius = 24 + Math.random() * 10;
+    speed = 1.5 + stageBoost;
     color = '#ffd76a';
-    name = 'Sovereign';
+    name = 'Sentinel';
   } else if (type === 'boss') {
-    radius = 40 + Math.random() * 12;
-    speed = 1.1 + state.stage * 0.04;
+    radius = 42 + Math.random() * 10;
+    speed = 1.2 + stageBoost;
     color = '#ff5b78';
-    name = 'Boss: ' + randomName();
-  } else {
-    radius = 12 + Math.random() * 12;
-    speed = 1.3 + state.stage * 0.05;
-    color = palette[Math.floor(Math.random() * palette.length)];
-    name = randomName();
+    name = 'Boss ' + randomName();
   }
 
   const side = Math.floor(Math.random() * 4);
   let x = Math.random() * world.width;
   let y = Math.random() * world.height;
 
-  if (side === 0) {
-    x = -30;
-    y = Math.random() * world.height;
-  } else if (side === 1) {
-    x = world.width + 30;
-    y = Math.random() * world.height;
-  } else if (side === 2) {
-    x = Math.random() * world.width;
-    y = -30;
-  } else {
-    x = Math.random() * world.width;
-    y = world.height + 30;
-  }
+  if (side === 0) x = -30; y = Math.random() * world.height;
+  if (side === 1) x = world.width + 30; y = Math.random() * world.height;
+  if (side === 2) x = Math.random() * world.width; y = -30;
+  if (side === 3) x = Math.random() * world.width; y = world.height + 30;
 
   enemies.push({
     x,
@@ -133,13 +154,12 @@ function spawnEnemy(type = 'drone') {
     color,
     name,
     type,
-    shootCooldown: 0,
-    baseSize: radius,
+    attackTimer: 900 + Math.random() * 400,
   });
 }
 
 function randomName() {
-  const names = ['Astra', 'Vela', 'Sera', 'Nia', 'Rhea', 'Mira', 'Luna', 'Selene', 'Kaia', 'Iris', 'Nova', 'Ari'];
+  const names = ['Astra', 'Vela', 'Rhea', 'Mira', 'Luna', 'Selene', 'Kaia', 'Nova', 'Iris', 'Ari'];
   return names[Math.floor(Math.random() * names.length)];
 }
 
@@ -153,9 +173,9 @@ function handleInput() {
   if (keys['ArrowDown'] || keys['s']) dy += 1;
 
   if (dx !== 0 || dy !== 0) {
-    const len = Math.hypot(dx, dy) || 1;
-    player.x += (dx / len) * player.speed;
-    player.y += (dy / len) * player.speed;
+    const mag = Math.hypot(dx, dy) || 1;
+    player.x += (dx / mag) * player.speed;
+    player.y += (dy / mag) * player.speed;
   }
 
   player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
@@ -164,7 +184,6 @@ function handleInput() {
 
 function shoot() {
   if (!state.running) return;
-
   const target = findNearestEnemy();
   if (!target) return;
 
@@ -182,50 +201,73 @@ function shoot() {
 }
 
 function findNearestEnemy() {
-  let result = null;
-  let minDist = Infinity;
+  let selected = null;
+  let nearest = Infinity;
 
   for (const enemy of enemies) {
     const dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
-    if (dist < minDist) {
-      minDist = dist;
-      result = enemy;
+    if (dist < nearest) {
+      nearest = dist;
+      selected = enemy;
     }
   }
 
-  return result;
+  return selected;
+}
+
+function triggerMutationChoice() {
+  state.running = false;
+  state.mutationReady = true;
+  mutationChoicesEl.innerHTML = '';
+
+  mutationOptions.forEach((option) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'mutation-card';
+    card.innerHTML = `
+      <h3>${option.title}</h3>
+      <p>${option.text}</p>
+    `;
+    card.addEventListener('click', () => {
+      option.apply();
+      state.mutationReady = false;
+      state.running = true;
+      mutationOverlayEl.classList.add('hidden');
+    });
+    mutationChoicesEl.appendChild(card);
+  });
+
+  mutationOverlayEl.classList.remove('hidden');
 }
 
 function update(dt) {
   if (!state.running) return;
 
   handleInput();
-  state.spawnTimer += dt;
-  state.bossTimer += dt;
-  state.shootCooldown -= dt;
+  player.hp = Math.min(player.maxHp, player.hp + player.regen * dt * 0.06);
 
-  if (state.shootCooldown <= 0) {
+  state.spawnTimer += dt;
+  state.shotCooldown -= dt;
+
+  if (state.shotCooldown <= 0) {
     shoot();
-    state.shootCooldown = 220;
+    state.shotCooldown = 240;
   }
 
-  if (state.spawnTimer > 1200 - state.stage * 30 && !state.bossActive) {
+  if (state.spawnTimer > 1050 && !state.bossActive) {
     const roll = Math.random();
-    if (roll < 0.7) {
-      spawnEnemy('drone');
-    } else if (roll < 0.9) {
-      spawnEnemy('hunter');
-    } else {
-      spawnEnemy('elite');
-    }
+    if (roll < 0.6) spawnEnemy('drone');
+    else if (roll < 0.88) spawnEnemy('hunter');
+    else spawnEnemy('elite');
     state.spawnTimer = 0;
   }
 
-  if (!state.bossActive && state.score >= 260 + (state.stage - 1) * 100) {
+  if (!state.bossActive && state.score >= 240 + (state.stage - 1) * 140) {
     state.stage += 1;
     state.bossActive = true;
     spawnEnemy('boss');
     hudMessageEl.textContent = 'Boss del multiverso comparso';
+    triggerMutationChoice();
   }
 
   updateProjectiles(dt);
@@ -262,91 +304,79 @@ function updateEnemies(dt) {
     enemy.x += (dx / dist) * enemy.speed * dt * 0.06;
     enemy.y += (dy / dist) * enemy.speed * dt * 0.06;
 
-    if (enemy.type !== 'boss') {
-      enemy.shootCooldown -= dt;
-      if (enemy.shootCooldown <= 0 && dist < 260) {
-        spawnEnemyProjectile(enemy, dt);
-        enemy.shootCooldown = 1400 + Math.random() * 700;
-      }
-    }
-
-    if (enemy.type === 'boss' && dist < 280) {
-      enemy.shootCooldown -= dt;
-      if (enemy.shootCooldown <= 0) {
-        for (let n = 0; n < 6; n++) {
-          const angle = (Math.PI * 2 / 6) * n + Math.random() * 0.35;
+    if (enemy.type === 'boss') {
+      enemy.attackTimer -= dt;
+      if (enemy.attackTimer <= 0) {
+        for (let n = 0; n < 7; n++) {
+          const angle = (Math.PI * 2 / 7) * n + Math.random() * 0.5;
           projectiles.push({
             x: enemy.x,
             y: enemy.y,
             radius: 7,
-            speed: 5.5,
-            vx: Math.cos(angle) * 5.5,
-            vy: Math.sin(angle) * 5.5,
+            speed: 5.2,
+            vx: Math.cos(angle) * 5.2,
+            vy: Math.sin(angle) * 5.2,
             color: '#ff5b78',
             from: 'enemy',
           });
         }
-        enemy.shootCooldown = 900;
+        enemy.attackTimer = 1150;
+      }
+    } else {
+      enemy.attackTimer -= dt;
+      if (enemy.attackTimer <= 0 && dist < 260) {
+        const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        projectiles.push({
+          x: enemy.x,
+          y: enemy.y,
+          radius: 6,
+          speed: 4.5,
+          vx: Math.cos(angle) * 4.5,
+          vy: Math.sin(angle) * 4.5,
+          color: '#ff7ace',
+          from: 'enemy',
+        });
+        enemy.attackTimer = 1100 + Math.random() * 700;
       }
     }
 
-    const minDistance = player.radius + enemy.radius + 4;
-    if (dist < minDistance) {
-      if (player.radius > enemy.radius + 6) {
+    const collisionDist = player.radius + enemy.radius + 4;
+    if (dist < collisionDist) {
+      if (player.radius > enemy.radius + 8) {
         absorbEnemy(enemy);
         enemies.splice(i, 1);
       } else {
-        player.hp -= enemy.type === 'boss' ? 18 : enemy.type === 'elite' ? 14 : 8;
-        player.invuln = 0.7;
+        const damage = enemy.type === 'boss' ? 18 : enemy.type === 'elite' ? 12 : 8;
+        player.hp -= damage;
         createBurst(enemy.x, enemy.y, enemy.color, 18);
       }
     }
   }
 }
 
-function spawnEnemyProjectile(enemy) {
-  const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-  projectiles.push({
-    x: enemy.x,
-    y: enemy.y,
-    radius: 6,
-    speed: 5,
-    vx: Math.cos(angle) * 5,
-    vy: Math.sin(angle) * 5,
-    color: '#ff7ace',
-    from: 'enemy',
-  });
-}
-
 function absorbEnemy(enemy) {
-  const reward = enemy.type === 'boss' ? 150 : enemy.type === 'elite' ? 70 : enemy.type === 'hunter' ? 45 : 25;
+  const reward = enemy.type === 'boss' ? 170 : enemy.type === 'elite' ? 80 : enemy.type === 'hunter' ? 45 : 24;
   state.score += reward;
 
-  player.radius = Math.min(96, player.radius + (enemy.type === 'boss' ? 8 : 2.3));
+  player.radius = Math.min(96, player.radius + (enemy.type === 'boss' ? 8.5 : 2.4));
   player.growth = player.radius / 24;
-  player.speed = Math.min(8.5, 4.8 + player.growth * 1.2);
-  player.hp = Math.min(player.maxHp, player.hp + (enemy.type === 'boss' ? 24 : 10));
+  player.speed = Math.min(10, 4.8 + player.growth * 1.3);
+  player.hp = Math.min(player.maxHp, player.hp + (enemy.type === 'boss' ? 20 : 8));
 
-  if (player.radius < 34) {
-    player.form = 'Spore';
-  } else if (player.radius < 48) {
-    player.form = 'Crawler';
-  } else if (player.radius < 68) {
-    player.form = 'Apex';
-  } else if (player.radius < 84) {
-    player.form = 'OverCell';
-  } else {
-    player.form = 'God Cell';
-  }
+  if (player.radius < 30) player.form = 'Spore';
+  else if (player.radius < 42) player.form = 'Crawler';
+  else if (player.radius < 58) player.form = 'Apex';
+  else if (player.radius < 76) player.form = 'OverCell';
+  else player.form = 'God Cell';
 
   if (enemy.type === 'boss') {
     state.bossActive = false;
-    hudMessageEl.textContent = 'Boss eliminato: dimensione del multiverso spezzata';
+    hudMessageEl.textContent = 'Boss sconfitto: dominio del multiverso raggiunto';
   } else {
-    hudMessageEl.textContent = 'Assorbimento riuscito';
+    hudMessageEl.textContent = 'Assorbimento completato';
   }
 
-  createBurst(enemy.x, enemy.y, enemy.color, enemy.type === 'boss' ? 36 : 20);
+  createBurst(enemy.x, enemy.y, enemy.color, enemy.type === 'boss' ? 35 : 18);
 }
 
 function checkCollisions() {
@@ -361,7 +391,7 @@ function checkCollisions() {
         if (dist <= enemy.radius + p.radius) {
           projectiles.splice(i, 1);
           createBurst(enemy.x, enemy.y, enemy.color, 12);
-          enemy.radius -= 2.4;
+          enemy.radius -= 2.2 * player.attackPower;
 
           if (enemy.radius <= 8) {
             enemies.splice(j, 1);
@@ -389,7 +419,7 @@ function createBurst(x, y, color, count) {
       y,
       vx: (Math.random() - 0.5) * 4,
       vy: (Math.random() - 0.5) * 4,
-      life: 20 + Math.random() * 25,
+      life: 16 + Math.random() * 20,
       color,
       radius: 2 + Math.random() * 3,
     });
@@ -412,6 +442,9 @@ function updateHud() {
   stageEl.textContent = String(state.stage);
   sizeEl.textContent = (player.radius / 24).toFixed(1) + 'x';
   formEl.textContent = player.form;
+  powerStatEl.textContent = player.attackPower.toFixed(1);
+  speedStatEl.textContent = player.speed.toFixed(1);
+  bestStatEl.textContent = String(state.best);
 
   if (state.best < state.score) {
     state.best = state.score;
@@ -440,17 +473,16 @@ function drawBackground() {
   ctx.fillStyle = '#091220';
   ctx.fillRect(0, 0, world.width, world.height);
 
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 36; i++) {
     const x = (i * 97) % world.width;
-    const y = (i * 73) % world.height;
+    const y = (i * 63) % world.height;
     ctx.fillStyle = 'rgba(160, 200, 255, 0.08)';
     ctx.fillRect(x, y, 2, 2);
   }
 
-  ctx.strokeStyle = 'rgba(127, 232, 255, 0.08)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 12; i++) {
-    const y = (i / 12) * world.height;
+  for (let i = 0; i < 18; i++) {
+    const y = (i / 18) * world.height;
+    ctx.strokeStyle = 'rgba(127, 232, 255, 0.06)';
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(world.width, y);
@@ -516,7 +548,7 @@ function drawParticles() {
   for (const p of particles) {
     ctx.beginPath();
     ctx.fillStyle = p.color;
-    ctx.globalAlpha = Math.max(0, p.life / 30);
+    ctx.globalAlpha = Math.max(0, p.life / 35);
     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -525,9 +557,9 @@ function drawParticles() {
 
 function drawAura() {
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(116, 255, 180, 0.5)';
+  ctx.strokeStyle = 'rgba(116, 255, 180, 0.55)';
   ctx.lineWidth = 2;
-  ctx.arc(player.x, player.y, player.radius + 10, 0, Math.PI * 2);
+  ctx.arc(player.x, player.y, player.radius + 12, 0, Math.PI * 2);
   ctx.stroke();
 }
 
@@ -561,8 +593,9 @@ window.addEventListener('keyup', (event) => {
   keys[event.key.toLowerCase()] = false;
 });
 
-startOverlayEl.querySelector('#startBtn').addEventListener('click', resetGame);
-gameOverOverlayEl.querySelector('#retryBtn').addEventListener('click', resetGame);
+document.getElementById('startBtn').addEventListener('click', resetGame);
+document.getElementById('retryBtn').addEventListener('click', resetGame);
 
 updateHud();
 requestAnimationFrame(gameLoop);
+

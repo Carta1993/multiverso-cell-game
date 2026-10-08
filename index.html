@@ -3,30 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cell: Multiverse Absorption</title>
+    <title>Cell: Multiverse Absorption AAA</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="game-wrap">
       <aside class="panel left">
         <div class="title">CELL</div>
-        <div class="stat">
+        <div class="stat-row">
           <span>Forma</span>
           <strong id="cellForm">Spore</strong>
         </div>
-        <div class="stat">
+        <div class="stat-row">
           <span>Punteggio</span>
           <strong id="score">0</strong>
         </div>
-        <div class="stat">
+        <div class="stat-row">
           <span>Dimensione</span>
           <strong id="size">1.0x</strong>
         </div>
-        <div class="stat">
+        <div class="stat-row">
           <span>Vita</span>
           <strong id="hp">100</strong>
         </div>
-        <div class="stat">
+        <div class="stat-row">
           <span>Stadio</span>
           <strong id="stage">1</strong>
         </div>
@@ -34,16 +34,21 @@
 
       <main class="arena-box">
         <canvas id="gameCanvas" width="960" height="600"></canvas>
-        <div id="hudMessage" class="hud-message">Missione iniziata: domina i mondi</div>
+        <div id="hudMessage" class="hud-message">Missione in attesa</div>
       </main>
 
       <aside class="panel right">
-        <div class="title">OBIETTIVO</div>
+        <div class="title">POWER</div>
         <ul>
           <li>Assorbi le avversarie</li>
-          <li>Emergi come Cell</li>
-          <li>Supera il boss finale</li>
+          <li>Fai evolvere Cell</li>
+          <li>Sconfiggi il boss finale</li>
         </ul>
+        <div class="system-box">
+          <div class="mini-stat"><span>Potenza</span><strong id="powerStat">1.0</strong></div>
+          <div class="mini-stat"><span>Velocità</span><strong id="speedStat">1.0</strong></div>
+          <div class="mini-stat"><span>Record</span><strong id="bestStat">0</strong></div>
+        </div>
         <div class="controls">
           <p>WASD / Frecce = muovi</p>
           <p>Spazio = attacco</p>
@@ -54,12 +59,20 @@
 
     <div id="startOverlay" class="overlay visible">
       <div class="overlay-card">
-        <p class="tag">MULTIVERSO</p>
-        <h1>Cell: Absorption</h1>
+        <p class="tag">MULTIVERSO IMPERIALE</p>
+        <h1>Cell: Absorption AAA</h1>
         <p>
-          La tua missione è assorbire tutte le protagoniste del multiverso e far crescere la tua forma fino a diventare un'entità invincibile.
+          Il tuo scopo è conquistare i mondi del multiverso, assorbire le protagoniste rivali e trasformare Cell in una forma assoluta.
         </p>
         <button id="startBtn">Avvia missione</button>
+      </div>
+    </div>
+
+    <div id="mutationOverlay" class="overlay hidden">
+      <div class="overlay-card">
+        <p class="tag">MUTAZIONE</p>
+        <h2>Scegli la tua evoluzione</h2>
+        <div id="mutationChoices" class="mutation-grid"></div>
       </div>
     </div>
 
