@@ -7,31 +7,68 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="game-shell">
-      <header class="hud">
-        <div>
-          <span class="label">Cell</span>
-          <strong id="cell-name">MORPH 1</strong>
+    <div class="game-wrap">
+      <aside class="panel left">
+        <div class="title">CELL</div>
+        <div class="stat">
+          <span>Forma</span>
+          <strong id="cellForm">Spore</strong>
         </div>
-        <div>
-          <span class="label">Punteggio</span>
+        <div class="stat">
+          <span>Punteggio</span>
           <strong id="score">0</strong>
         </div>
-        <div>
-          <span class="label">Vita</span>
+        <div class="stat">
+          <span>Dimensione</span>
+          <strong id="size">1.0x</strong>
+        </div>
+        <div class="stat">
+          <span>Vita</span>
           <strong id="hp">100</strong>
         </div>
-        <div>
-          <span class="label">Stato</span>
-          <strong id="status">Caccia multiverso</strong>
+        <div class="stat">
+          <span>Stadio</span>
+          <strong id="stage">1</strong>
         </div>
-      </header>
+      </aside>
 
-      <canvas id="gameCanvas" width="960" height="600"></canvas>
+      <main class="arena-box">
+        <canvas id="gameCanvas" width="960" height="600"></canvas>
+        <div id="hudMessage" class="hud-message">Missione iniziata: domina i mondi</div>
+      </main>
 
-      <div class="controls">
-        <p>Muovi: WASD / Frecce</p>
-        <p>Premi <strong>R</strong> per riavviare</p>
+      <aside class="panel right">
+        <div class="title">OBIETTIVO</div>
+        <ul>
+          <li>Assorbi le avversarie</li>
+          <li>Emergi come Cell</li>
+          <li>Supera il boss finale</li>
+        </ul>
+        <div class="controls">
+          <p>WASD / Frecce = muovi</p>
+          <p>Spazio = attacco</p>
+          <p>R = riavvia</p>
+        </div>
+      </aside>
+    </div>
+
+    <div id="startOverlay" class="overlay visible">
+      <div class="overlay-card">
+        <p class="tag">MULTIVERSO</p>
+        <h1>Cell: Absorption</h1>
+        <p>
+          La tua missione è assorbire tutte le protagoniste del multiverso e far crescere la tua forma fino a diventare un'entità invincibile.
+        </p>
+        <button id="startBtn">Avvia missione</button>
+      </div>
+    </div>
+
+    <div id="gameOverOverlay" class="overlay hidden">
+      <div class="overlay-card danger">
+        <p class="tag">MISSIONE FALLITA</p>
+        <h2>Cell è stato contrastato</h2>
+        <p id="finalScore">Punteggio: 0</p>
+        <button id="retryBtn">Riprova</button>
       </div>
     </div>
 
